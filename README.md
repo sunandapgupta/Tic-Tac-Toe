@@ -1,55 +1,58 @@
-# Tic Tac Toe Pro 🎮
+# Tic Tac Toe Pro
 
-This is a simple Tic Tac Toe game built as part of a small personal project.  
-It is a 2-player game where players take turns marking X and O on a 3x3 grid.
+A simple Tic Tac Toe game built using Flutter. It supports **Human vs Human** and **Human vs AI** modes with different difficulty levels.
 
-The goal is to get three marks in a row — horizontally, vertically, or diagonally.
 
-## 🚀 Live Game
+## Features
 
-You can play the game here:  
+- **Human vs Human (PvP) mode**
+- **Human vs AI mode**
+- **Easy, Medium, Hard AI difficulty**
+- Option to play **first or second** against AI
+- **Best of 5 match system**
+- Clean **dark UI design**
+- Works on **web and mobile**
+
+
+## Play Online
+
 https://sunandapgupta.itch.io/tic-tac-toe-pro
 
-## 📂 Project Location
 
-GitHub repository:  
-https://github.com/sunandapgupta/Tic-Tac-Toe/tree/main/board_game_app
+## Tech Stack
 
-## 🎮 How to Play
+- Flutter
+- Dart
 
-- Player X starts first
-- Players take turns placing X and O
-- The first player to get 3 in a row wins
-- If all cells are filled and no one wins, the game ends in a draw
 
-## 🛠️ Built With
+## How to Run Locally
 
-- HTML
-- CSS
-- JavaScript
+- Clone the repository:
+  git clone https://github.com/sunandapgupta/Tic-Tac-Toe.git
 
-## 📌 Features
+- Go to project folder:
+  cd Tic-Tac-Toe
 
-- Simple and clean UI
-- Two player mode
-- Win detection logic
-- Reset option after game ends
+- Install dependencies:
+  flutter pub get
 
-## 💡 What I learned
+- Run the app:
+  flutter run
 
-While building this project, I learned how to:
-- Handle game state in JavaScript
-- Work with basic DOM manipulation
-- Implement win/draw conditions
-- Structure a small frontend project
 
-## 📌 Note
+## Build for Web
 
-This is a basic version of the game. I may improve it later with:
-- AI opponent
-- Score tracking
-- Better UI animations
+- flutter build web
+  
 
-## 👩‍💻 Author
+## Project Structure
 
-Made by Sunanda P. Gupta
+- **lib/** → Main source code  
+- **game_screen.dart** → Game UI and gameplay logic  
+- **setup_screen.dart** → Player setup screen  
+- **ai.dart** → AI logic  
+- **game_logic.dart** → Game rules and win detection  
+
+## Note
+
+This project is open for learning and improvement. Anyone can download or clone the repository, modify the code, and customize the game as needed.
