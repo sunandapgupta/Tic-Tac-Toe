@@ -16,6 +16,9 @@ class _SetupScreenState extends State<SetupScreen> {
 
   String difficulty = "Medium";
 
+  // Player choice: X = first, O = second
+  String playAs = "X";
+
   bool valid(String name) {
     return RegExp(r'^[a-zA-Z0-9]{4,10}$').hasMatch(name);
   }
@@ -33,18 +36,24 @@ class _SetupScreenState extends State<SetupScreen> {
           p1: p1.text,
           p2: widget.mode == "AI" ? "AI" : p2.text,
           difficulty: difficulty,
+
+          // AI starts if player chooses O
+          aiFirst: playAs == "O",
         ),
       ),
     );
   }
 
-  void info() {
+  void showRules() {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Rules"),
         content: const Text(
-          "4-10 characters only\nNo special symbols\nExample: Alex12\n",
+          "• 4–10 characters only\n"
+          "• No special symbols\n"
+          "• Example: Alex12\n\n"
+          "• Best of 5 match system",
         ),
         actions: [
           TextButton(
@@ -62,9 +71,13 @@ class _SetupScreenState extends State<SetupScreen> {
       appBar: AppBar(
         title: Text(widget.mode == "AI" ? "Vs AI Setup" : "PvP Setup"),
         actions: [
-          IconButton(onPressed: info, icon: const Icon(Icons.info))
+          IconButton(
+            onPressed: showRules,
+            icon: const Icon(Icons.info),
+          )
         ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -72,7 +85,10 @@ class _SetupScreenState extends State<SetupScreen> {
 
             TextField(
               controller: p1,
-              decoration: const InputDecoration(labelText: "Player 1"),
+              decoration: const InputDecoration(
+                labelText: "Player 1",
+                border: OutlineInputBorder(),
+              ),
             ),
 
             const SizedBox(height: 10),
@@ -80,14 +96,19 @@ class _SetupScreenState extends State<SetupScreen> {
             if (widget.mode == "PVP")
               TextField(
                 controller: p2,
-                decoration: const InputDecoration(labelText: "Player 2"),
+                decoration: const InputDecoration(
+                  labelText: "Player 2",
+                  border: OutlineInputBorder(),
+                ),
               ),
 
             const SizedBox(height: 20),
 
+            // Difficulty
             if (widget.mode == "AI")
               DropdownButton<String>(
                 value: difficulty,
+                isExpanded: true,
                 items: const [
                   DropdownMenuItem(value: "Easy", child: Text("Easy")),
                   DropdownMenuItem(value: "Medium", child: Text("Medium")),
@@ -96,11 +117,59 @@ class _SetupScreenState extends State<SetupScreen> {
                 onChanged: (v) => setState(() => difficulty = v!),
               ),
 
+            const SizedBox(height: 20),
+
+            // Play order selection
+            if (widget.mode == "AI")
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Choose Turn Order",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Radio<String>(
+                            value: "X",
+                            groupValue: playAs,
+                            onChanged: (v) => setState(() => playAs = v!),
+                          ),
+                          const Text("Play First (X)"),
+                        ],
+                      ),
+
+                      const SizedBox(width: 20),
+
+                      Row(
+                        children: [
+                          Radio<String>(
+                            value: "O",
+                            groupValue: playAs,
+                            onChanged: (v) => setState(() => playAs = v!),
+                          ),
+                          const Text("Play Second (O)"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
             const SizedBox(height: 30),
 
-            ElevatedButton(
-              onPressed: start,
-              child: const Text("PLAY"),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: start,
+                child: const Text("PLAY"),
+              ),
             ),
           ],
         ),

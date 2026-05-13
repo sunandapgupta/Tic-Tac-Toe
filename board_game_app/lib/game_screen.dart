@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'logic/game_logic.dart';
 import 'logic/ai.dart';
 
@@ -7,6 +8,7 @@ class GameScreen extends StatefulWidget {
   final String p1;
   final String p2;
   final String difficulty;
+  final bool aiFirst;
 
   const GameScreen({
     super.key,
@@ -14,6 +16,7 @@ class GameScreen extends StatefulWidget {
     required this.p1,
     required this.p2,
     required this.difficulty,
+    required this.aiFirst,
   });
 
   @override
@@ -22,65 +25,107 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   List<String> board = List.filled(9, "");
+  List<int> winLine = [];
+
   bool xTurn = true;
   bool over = false;
+  bool aiThinking = false;
 
   int p1Wins = 0;
   int p2Wins = 0;
   int draws = 0;
+  int gameCount = 0;
 
-  void reset() {
+  bool showWinnerScreen = false;
+  String winnerText = "";
+
+  // NEW: Symbols
+  String playerSymbol = "X";
+  String aiSymbol = "O";
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.mode == "AI") {
+      if (widget.aiFirst) {
+        playerSymbol = "O";
+        aiSymbol = "X";
+        xTurn = false;
+        Future.delayed(const Duration(milliseconds: 400), aiMove);
+      } else {
+        playerSymbol = "X";
+        aiSymbol = "O";
+      }
+    }
+  }
+
+  void resetBoard() {
     setState(() {
       board = List.filled(9, "");
-      xTurn = true;
+      winLine = [];
       over = false;
+      xTurn = true;
+      showWinnerScreen = false;
     });
+
+    if (widget.mode == "AI" && widget.aiFirst) {
+      xTurn = false;
+      Future.delayed(const Duration(milliseconds: 300), aiMove);
+    }
   }
 
-  void result(String t) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Game Over"),
-        content: Text(t),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              reset();
-            },
-            child: const Text("Restart"),
-          )
-        ],
-      ),
-    );
-  }
+  void showFinalResult() {
+    String winner;
 
-  void aiMove() {
-    int move;
-
-    if (widget.difficulty == "Easy") {
-      move = AI.easyMove(board);
+    if (p1Wins > p2Wins) {
+      winner = widget.p1;
+    } else if (p2Wins > p1Wins) {
+      winner = widget.mode == "AI" ? "AI" : widget.p2;
     } else {
-      move = AI.findBestMove(board, "O") ?? AI.easyMove(board);
+      winner = "DRAW";
     }
 
     setState(() {
-      board[move] = "O";
+      showWinnerScreen = true;
+      winnerText = "🎉 HURRAY!\n$winner WINS THE MATCH!";
+    });
+  }
 
-      String w = GameLogic.checkWinner(board);
+  void checkMatch() {
+    gameCount++;
+    if (gameCount >= 5) {
+      showFinalResult();
+    }
+  }
 
-      if (w != "") {
-        over = true;
-        p2Wins++;
-        result("AI Wins!");
-      } else if (GameLogic.isDraw(board)) {
-        over = true;
-        draws++;
-        result("Draw!");
-      } else {
-        xTurn = true;
-      }
+  void aiMove() {
+    if (over) return;
+
+    setState(() => aiThinking = true);
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      int move = AI.getMove(board, aiSymbol);
+
+      setState(() {
+        aiThinking = false;
+        board[move] = aiSymbol;
+
+        String w = GameLogic.checkWinner(board);
+        winLine = GameLogic.getWinningLine(board);
+
+        if (w != "") {
+          over = true;
+          p2Wins++;
+          checkMatch();
+        } else if (GameLogic.isDraw(board)) {
+          over = true;
+          draws++;
+          checkMatch();
+        } else {
+          xTurn = true;
+        }
+      });
     });
   }
 
@@ -89,81 +134,147 @@ class _GameScreenState extends State<GameScreen> {
     if (widget.mode == "AI" && !xTurn) return;
 
     setState(() {
-      board[i] = xTurn ? "X" : "O";
+      board[i] = playerSymbol;
 
       String w = GameLogic.checkWinner(board);
+      winLine = GameLogic.getWinningLine(board);
 
       if (w != "") {
         over = true;
-        if (w == "X") p1Wins++;
-        if (w == "O") p2Wins++;
-        result("$w Wins!");
-        return;
-      }
 
-      if (GameLogic.isDraw(board)) {
+        if (w == playerSymbol) p1Wins++;
+        if (w == aiSymbol) p2Wins++;
+
+        checkMatch();
+      } else if (GameLogic.isDraw(board)) {
         over = true;
         draws++;
-        result("Draw!");
-        return;
+        checkMatch();
+      } else {
+        xTurn = !xTurn;
       }
-
-      xTurn = !xTurn;
     });
 
     if (widget.mode == "AI" && !over && !xTurn) {
-      Future.delayed(const Duration(milliseconds: 300), aiMove);
+      aiMove();
     }
-  }
-
-  Color color(String v) {
-    if (v == "X") return Colors.blue;
-    if (v == "O") return Colors.red;
-    return Colors.black;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Tic Tac Toe Pro")),
-      body: Column(
+      backgroundColor: const Color(0xFF0F0F0F),
+
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E1E1E),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          "Game ${gameCount + 1}/5",
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+
+      body: Stack(
         children: [
-          const SizedBox(height: 10),
 
-          Text("${widget.p1} vs ${widget.mode == "AI" ? "AI" : widget.p2}"),
+          Column(
+            children: [
+              const SizedBox(height: 10),
 
-          Text("X: $p1Wins  |  O: $p2Wins  |  Draws: $draws"),
-
-          const SizedBox(height: 10),
-
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: 9,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+              Text(
+                "${widget.p1} ($playerSymbol) vs ${widget.mode == "AI" ? "AI" : widget.p2} ($aiSymbol)",
+                style: const TextStyle(color: Colors.white),
               ),
-              itemBuilder: (c, i) {
-                return GestureDetector(
-                  onTap: () => tap(i),
-                  child: Container(
-                    margin: const EdgeInsets.all(4),
-                    color: Colors.grey.shade200,
-                    child: Center(
-                      child: Text(
-                        board[i],
-                        style: TextStyle(
-                          fontSize: 40,
-                          color: color(board[i]),
-                          fontWeight: FontWeight.bold,
+
+              const SizedBox(height: 10),
+
+              Text(
+                "${widget.p1}: $p1Wins  |  ${widget.mode == "AI" ? "AI" : widget.p2}: $p2Wins",
+                style: const TextStyle(color: Colors.white70),
+              ),
+
+              if (aiThinking)
+                const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text(
+                    "AI thinking...",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: 9,
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                  ),
+                  itemBuilder: (c, i) {
+                    return GestureDetector(
+                      onTap: () => tap(i),
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: winLine.contains(i)
+                              ? Colors.greenAccent
+                              : const Color(0xFF2A2A2A),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            board[i],
+                            style: TextStyle(
+                              fontSize: 40,
+                              color: board[i] == "X"
+                                  ? Colors.blue
+                                  : Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
+              ),
+
+              ElevatedButton(
+                onPressed: resetBoard,
+                child: const Text("Next Round"),
+              ),
+
+              const SizedBox(height: 20),
+            ],
           ),
+
+          if (showWinnerScreen)
+            Container(
+              color: Colors.black.withOpacity(0.9),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("🎉🎉🎉", style: TextStyle(fontSize: 40)),
+                    const SizedBox(height: 20),
+                    Text(
+                      winnerText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Home"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
