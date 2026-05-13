@@ -39,7 +39,7 @@ class _GameScreenState extends State<GameScreen> {
   bool showWinnerScreen = false;
   String winnerText = "";
 
-  // NEW: Symbols
+  // AI ONLY
   String playerSymbol = "X";
   String aiSymbol = "O";
 
@@ -131,10 +131,20 @@ class _GameScreenState extends State<GameScreen> {
 
   void tap(int i) {
     if (board[i] != "" || over) return;
+
+    // PvP strict rule fix
     if (widget.mode == "AI" && !xTurn) return;
 
+    String symbol;
+
+    if (widget.mode == "AI") {
+      symbol = playerSymbol;
+    } else {
+      symbol = xTurn ? "X" : "O";
+    }
+
     setState(() {
-      board[i] = playerSymbol;
+      board[i] = symbol;
 
       String w = GameLogic.checkWinner(board);
       winLine = GameLogic.getWinningLine(board);
@@ -142,8 +152,13 @@ class _GameScreenState extends State<GameScreen> {
       if (w != "") {
         over = true;
 
-        if (w == playerSymbol) p1Wins++;
-        if (w == aiSymbol) p2Wins++;
+        if (widget.mode == "AI") {
+          if (w == playerSymbol) p1Wins++;
+          if (w == aiSymbol) p2Wins++;
+        } else {
+          if (w == "X") p1Wins++;
+          if (w == "O") p2Wins++;
+        }
 
         checkMatch();
       } else if (GameLogic.isDraw(board)) {
@@ -182,7 +197,9 @@ class _GameScreenState extends State<GameScreen> {
               const SizedBox(height: 10),
 
               Text(
-                "${widget.p1} ($playerSymbol) vs ${widget.mode == "AI" ? "AI" : widget.p2} ($aiSymbol)",
+                widget.mode == "AI"
+                    ? "${widget.p1} ($playerSymbol) vs AI ($aiSymbol)"
+                    : "${widget.p1} (X) vs ${widget.p2} (O)",
                 style: const TextStyle(color: Colors.white),
               ),
 
@@ -192,15 +209,6 @@ class _GameScreenState extends State<GameScreen> {
                 "${widget.p1}: $p1Wins  |  ${widget.mode == "AI" ? "AI" : widget.p2}: $p2Wins",
                 style: const TextStyle(color: Colors.white70),
               ),
-
-              if (aiThinking)
-                const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text(
-                    "AI thinking...",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
 
               Expanded(
                 child: GridView.builder(
@@ -243,8 +251,6 @@ class _GameScreenState extends State<GameScreen> {
                 onPressed: resetBoard,
                 child: const Text("Next Round"),
               ),
-
-              const SizedBox(height: 20),
             ],
           ),
 
